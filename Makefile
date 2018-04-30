@@ -16,9 +16,10 @@ CSRC      = $(wildcard source/*.c source/**/*.c)
 INC       = $(wildcard source/*.h source/**/*.h)
 OBJ       = $(CSRC:.c=.o)
 SHAREDIR  = Shared
-MUPDF_DIR = dep/mupdf-1.12.0-source
+MUPDF_DIR = dep/mupdf
 MUPDF_LIB_DIR = $(MUPDF_DIR)/build/release
 
+CFLAGS += -DARCH_32BIT
 CFLAGS += -O2 -std=c11 -ffunction-sections
 CFLAGS += -Wno-multichar -Wno-attributes #-Werror
 CFLAGS += -I$(MUPDF_DIR)/include -I$(TOOLCHAIN)/$(ARCH)/include
@@ -38,26 +39,20 @@ $(BIN).dsk: $(BIN).code.bin
 		-o $(BIN).bin --cc $(BIN).dsk --cc $(BIN).APPL --cc %$(BIN).ad \
 		-t 'APPL' -c '????'
 
-$(BIN).code.bin: $(OBJ) $(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdfthird.a
-	$(CC) -o $(BIN).code.bin $(OBJ) $(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdfthird.a $(LDFLAGS)
+$(BIN).code.bin: $(OBJ) $(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdf-third.a
+	$(CC) -o $(BIN).code.bin $(OBJ) $(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdf-third.a $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(MUPDF_LIB_DIR)/libmupdf.a: $(MUPDF_DIR)/generated
-	  cd $(MUPDF_DIR) && make CC=$(CC) CXX=$(CXX) AR=$(AR) CROSSCOMPILE=yes XCFLAGS="-DNOCJK -DTOFU -DTOFU_CJK -DNO_CJK -DNOTO_SMALL  -DFZ_PLOTTERS_RGB=1 -DFZ_PLOTTERS_G=1 -DFZ_PLOTTERS_CMYK=0 -DFZ_PLOTTERS_N=0  -DFZ_ENABLE_PDF=1 -DFZ_ENABLE_XPS=0 -DFZ_ENABLE_SVG=0 -DFZ_ENABLE_CBZ=0 -DFZ_ENABLE_IMG=0 -DFZ_ENABLE_TIFF=0 -DFZ_ENABLE_HTML=0 -DFZ_ENABLE_EPUB=0 -DFZ_ENABLE_JPX=1  -DFZ_ENABLE_JS=0 -DNO_ICC" libs
+	cd $(MUPDF_DIR) && make CC=$(CC) CXX=$(CXX) AR=$(AR) LD=$(LD) CROSSCOMPILE=yes OS=m68k-apple-macos verbose=yes XCFLAGS="-DNOCJK -DTOFU -DTOFU_CJK -DNO_CJK -DNOTO_SMALL  -DFZ_PLOTTERS_RGB=1 -DFZ_PLOTTERS_G=1 -DFZ_PLOTTERS_CMYK=0 -DFZ_PLOTTERS_N=0  -DFZ_ENABLE_PDF=1 -DFZ_ENABLE_XPS=0 -DFZ_ENABLE_SVG=0 -DFZ_ENABLE_CBZ=0 -DFZ_ENABLE_IMG=0 -DFZ_ENABLE_TIFF=0 -DFZ_ENABLE_HTML=0 -DFZ_ENABLE_EPUB=0 -DFZ_ENABLE_JPX=1  -DFZ_ENABLE_JS=0 -DNO_ICC" libs
 
-$(MUPDF_LIB_DIR)/libmupdfthird.a: $(MUPDF_LIB_DIR)/libmupdf.a
+$(MUPDF_LIB_DIR)/libmupdf-third.a: $(MUPDF_LIB_DIR)/libmupdf.a
 
 # This is run on the native platform before cross-compiling
-$(MUPDF_DIR)/generated: $(MUPDF_DIR)
-	cd $< && make generate
-
-$(MUPDF_DIR): $(DEP_DIR)
-	curl https://mupdf.com/downloads/mupdf-1.12.0-source.tar.gz | tar xz
-
-$(DEP_DIR):
-	mkdir -p $@
+$(MUPDF_DIR)/generated: # $(MUPDF_DIR)
+	cd $(MUPDF_DIR) && make generate
 
 MINI_VMAC_DIR=../vMac
 MINI_VMAC=$(MINI_VMAC_DIR)/Mini\ vMac
@@ -71,7 +66,7 @@ run: $(BIN).dsk
 
 clean:
 	rm -f $(BIN) $(BIN).dsk $(BIN).bin $(BIN).code.bin $(BIN).ad $(BIN).code.bin.gdb $(BIN).APPL "%$(BIN).ad" \
-		$(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdfthird.a \
+		$(MUPDF_LIB_DIR)/libmupdf.a $(MUPDF_LIB_DIR)/libmupdf-third.a \
 		$(OBJ) $(CDEP)
 	rm -rf .finf .rsrc
 

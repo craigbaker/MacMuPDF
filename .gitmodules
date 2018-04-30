@@ -1,0 +1,3 @@
+[submodule "dep/mupdf"]
+	path = dep/mupdf
+	url = https://github.com/muennich/mupdf.git
